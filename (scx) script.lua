@@ -1048,7 +1048,7 @@ jumpBoostBtn.MouseButton1Click:Connect(function()
         jumpBoostBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
         local humanoid = lp.Character and lp.Character:FindFirstChildOfClass("Humanoid")
         if humanoid then
-            humanoid.JumpPower = 72
+            humanoid.JumpPower = 80
             humanoid.UseJumpPower = true
         end
         print("✅ JUMP BOOST ATIVADO")
@@ -1177,7 +1177,7 @@ teleguiadoBtn.MouseButton1Click:Connect(function()
                     return
                 end
                 
-                local moveDir = cam.CFrame.LookVector * 25
+                local moveDir = cam.CFrame.LookVector * 20
                 hrp.AssemblyLinearVelocity = moveDir
             end)
         end
