@@ -1,8 +1,74 @@
 local Jogadores = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Jogadores.LocalPlayer
-local task = task
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+-- ==================== SISTEMA BYPASS ====================
+local BypassSystem = {
+    Enabled = true,
+    SafeMode = false,
+    LastAction = tick(),
+    ActionCount = 0,
+    RandomSeed = math.random(1, 9999),
+}
+
+local function getRandomDelay(min, max)
+    math.randomseed((tick() * 1000) % 100000 + BypassSystem.RandomSeed)
+    return math.random(min * 1000, max * 1000) / 1000
+end
+
+local function humanWait(seconds)
+    local variedTime = seconds * getRandomDelay(0.9, 1.1)
+    task.wait(variedTime)
+end
+
+local function canPerformAction()
+    local now = tick()
+    if BypassSystem.SafeMode then return false end
+    if now - BypassSystem.LastAction < 1.5 then return false end
+    if BypassSystem.ActionCount >= 3 then
+        BypassSystem.ActionCount = 0
+        humanWait(getRandomDelay(2.0, 3.0))
+        return false
+    end
+    return true
+end
+
+local function protectedAction(actionFunc)
+    if not BypassSystem.Enabled or not canPerformAction() then 
+        return false 
+    end
+    
+    humanWait(getRandomDelay(0.1, 0.3))
+    BypassSystem.ActionCount = BypassSystem.ActionCount + 1
+    
+    local success, result = pcall(actionFunc)
+    BypassSystem.LastAction = tick()
+    
+    if success then
+        humanWait(getRandomDelay(0.15, 0.25))
+    end
+    
+    return success, result
+end
+
+local function protectedFireRemote(remote, ...)
+    if not remote or not remote:IsA("RemoteEvent") then return false end
+    return protectedAction(function()
+        remote:FireServer(...)
+    end)
+end
+
+local function protectedHeartbeat(callback)
+    return RunService.Heartbeat:Connect(function()
+        if BypassSystem.Enabled and not BypassSystem.SafeMode then
+            protectedAction(callback)
+        end
+    end)
+end
+
 
 local guiPrincipal = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
 guiPrincipal.Name = "InterfacePrincipal"
