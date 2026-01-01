@@ -4,7 +4,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Jogadores.LocalPlayer
 local task = task
 
-
 -- ==================== SISTEMA BYPASS ====================
 local BypassSystem = {
     Enabled = true,
