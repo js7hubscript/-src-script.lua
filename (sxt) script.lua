@@ -1,9 +1,9 @@
 local Jogadores = game:GetService("Players")
-local LocalPlayer = Jogadores.LocalPlayer
-local Workspace = game:GetService("Workspace")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local VirtualInputManager = game:GetService("VirtualInputManager")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Jogadores.LocalPlayer
+local task = task
+
 
 -- ==================== SISTEMA BYPASS ====================
 local BypassSystem = {
