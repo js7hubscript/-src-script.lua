@@ -964,7 +964,7 @@ local instaFloorBtn = criarBotaoP2("INSTA FLOOR", 5, true)
 -- ===========================
 local infJumpEnabled = false
 local INF_JUMP_ENABLED = false
-local INF_JUMP_POWER = 150
+local INF_JUMP_POWER = 68
 local INF_JUMP_DEFAULT = 50
 local INF_JUMP_ANTI_FALL = true
 local infJumpCharacter = nil
