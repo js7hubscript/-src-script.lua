@@ -1214,16 +1214,165 @@ spawn(function()
     end
 end)
 
--- Configurar botão ANTI DEBUFF (aplicar Desync V3)
+-- ==================== ANTI TURRET SYSTEM ====================
+local antiTurretSystem = {
+    Enabled = false,
+    autoSentry = false,
+    playerSentries = {},
+    running = false
+}
+
+local function findPlayerBase()
+    local char = LocalPlayer.Character
+    if not char then return nil end
+    
+    local plots = workspace:FindFirstChild("Plots")
+    if not plots then return nil end
+    
+    for _, plot in pairs(plots:GetChildren()) do
+        local sign = plot:FindFirstChild("PlotSign")
+        if sign then
+            local yourBase = sign:FindFirstChild("YourBase")
+            if yourBase and yourBase:IsA("BillboardGui") and yourBase.Enabled == true then
+                return plot
+            end
+        end
+    end
+    return nil
+end
+
+local function isPlayerSentry(sentryObj)
+    if antiTurretSystem.playerSentries[sentryObj] then return true end
+    
+    local playerBase = findPlayerBase()
+    if not playerBase then return false end
+    
+    local function isInPlayerBase(obj)
+        local current = obj
+        local depth = 0
+        while current and current ~= workspace and depth < 15 do
+            if current == playerBase then return true end
+            current = current.Parent
+            depth += 1
+        end
+        return false
+    end
+    
+    if isInPlayerBase(sentryObj) then
+        antiTurretSystem.playerSentries[sentryObj] = true
+        return true
+    end
+    return false
+end
+
+local function DoClick(tool)
+    if tool and tool:FindFirstChild("Handle") then
+        pcall(function() 
+            tool:Activate() 
+        end)
+    else
+        pcall(function()
+            local VirtualInputManager = game:GetService("VirtualInputManager")
+            VirtualInputManager:SendMouseButtonEvent(500, 500, 0, true, game, 0)
+            task.wait(0.05)
+            VirtualInputManager:SendMouseButtonEvent(500, 500, 0, false, game, 0)
+        end)
+    end
+end
+
+local function AttackSentry(part)
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp or not part then return end
+    
+    local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+    
+    local originalTool = humanoid:FindFirstChildOfClass("Tool")
+    local bat = originalTool or LocalPlayer.Backpack:FindFirstChild("Bat") or LocalPlayer.Backpack:FindFirstChild("bat")
+    
+    if bat then
+        if originalTool ~= bat then
+            pcall(function()
+                humanoid:EquipTool(bat)
+            end)
+            task.wait(0.2)
+        end
+        
+        while antiTurretSystem.autoSentry and part and part.Parent do
+            pcall(function()
+                part.CFrame = hrp.CFrame * CFrame.new(0, 0, -3)
+            end)
+            DoClick(bat)
+            task.wait(0.07)
+        end
+        
+        pcall(function()
+            if not antiTurretSystem.autoSentry then return end
+            if originalTool and originalTool.Parent then
+                humanoid:EquipTool(originalTool)
+            else
+                humanoid:UnequipTools()
+            end
+        end)
+    end
+end
+
+local function StartAutoSentry()
+    if antiTurretSystem.running then return end
+    antiTurretSystem.running = true
+    
+    task.spawn(function()
+        while antiTurretSystem.autoSentry and antiTurretSystem.Enabled do
+            pcall(function()
+                for _, obj in ipairs(workspace:GetChildren()) do
+                    if not antiTurretSystem.autoSentry then break end
+                    
+                    -- Detecta diferentes nomes de sentry/turret
+                    local objName = obj.Name:lower()
+                    if objName:find("sentry") or objName:find("turret") or objName:find("torreta") then
+                        if not isPlayerSentry(obj) then
+                            local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
+                            if part then
+                                AttackSentry(part)
+                                task.wait(0.2)
+                            end
+                        end
+                    end
+                end
+            end)
+            task.wait(0.4)
+        end
+        antiTurretSystem.running = false
+    end)
+end
+
+local function StopAutoSentry()
+    antiTurretSystem.autoSentry = false
+    antiTurretSystem.playerSentries = {}
+    task.wait(0.5)
+end
+
+-- ==================== CONFIGURAR BOTÃO ANTI DEBUFF (AGORA É ANTI TURRET) ====================
 spawn(function()
     wait(1)
     for _, child in ipairs(painelPrincipal:GetChildren()) do
         if child:IsA("TextButton") and child.Text == "ANTI DEBUFF" then
             child.MouseButton1Click:Connect(function()
-                aplicarDesync()
-                child.BackgroundColor3 = COR_BOTAO_ATIVO
-                task.wait(0.5)
-                child.BackgroundColor3 = COR_BOTAO_DESATIVADO
+                -- Alterna estado do ANTI TURRET
+                antiTurretSystem.Enabled = not antiTurretSystem.Enabled
+                antiTurretSystem.autoSentry = antiTurretSystem.Enabled
+                
+                -- APENAS muda a cor (texto permanece "ANTI DEBUFF")
+                if antiTurretSystem.Enabled then
+                    child.BackgroundColor3 = COR_BOTAO_ATIVO  -- Azul brilhante
+                    print("ANTI TURRET ativado!")
+                    StartAutoSentry()
+                else
+                    child.BackgroundColor3 = COR_BOTAO_DESATIVADO  -- Azul escuro
+                    print("ANTI TURRET desativado!")
+                    StopAutoSentry()
+                end
             end)
             break
         end
