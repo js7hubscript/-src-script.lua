@@ -1164,11 +1164,231 @@ criarBotaoLateral(posicaoYLateral, {
 })
 posicaoYLateral = posicaoYLateral + alturaLinhaLateral + ESPACO_LATERAL
 
--- Botão FLY V2
+-- Botão FLY V2 com funcionalidade completa
 criarBotaoLateral(posicaoYLateral, {
     nome1 = "FLY V2", 
     temSeta = false, 
-    altura = alturaLinhaLateral
+    altura = alturaLinhaLateral,
+    
+    callback = function(button)
+        local ativo = button.BackgroundColor3 == COR_BOTAO_ATIVO
+        
+        if not ativo then
+            -- Ativar Fly V2
+            button.BackgroundColor3 = COR_BOTAO_ATIVO
+            print("Fly V2 ativado!")
+            
+            -- Configuração do personagem
+            local character = LocalPlayer.Character
+            if not character then return end
+            local humanoid = character:WaitForChild("Humanoid")
+            local hrp = character:WaitForChild("HumanoidRootPart")
+            
+            -- Sistema Fly V2
+            local Fly = {
+                Speed = 80,
+                Up = false,
+                Down = false,
+                Enabled = true,
+                Connections = {},
+                GUI = nil
+            }
+            
+            -- Criar GUI de controle
+            local ScreenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+            ScreenGui.Name = "FlyV2ControlUI"
+            ScreenGui.ResetOnSpawn = false
+            
+            local function makeButton(text, pos)
+                local btn = Instance.new("TextButton", ScreenGui)
+                btn.Size = UDim2.new(0, 140, 0, 50)
+                btn.Position = pos
+                btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+                btn.TextColor3 = Color3.new(1, 1, 1)
+                btn.TextScaled = true
+                btn.Text = text
+                btn.AutoButtonColor = true
+                btn.BackgroundTransparency = 0.15
+                return btn
+            end
+            
+            local UpBtn = makeButton("⬆ Subir", UDim2.new(0.8, 0, 0.6, 0))
+            local DownBtn = makeButton("⬇ Descer", UDim2.new(0.8, 0, 0.7, 0))
+            
+            local SpeedBtn = Instance.new("TextButton", ScreenGui)
+            SpeedBtn.Size = UDim2.new(0, 180, 0, 50)
+            SpeedBtn.Position = UDim2.new(0.02, 0, 0.75, 0)
+            SpeedBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            SpeedBtn.TextColor3 = Color3.new(1, 1, 1)
+            SpeedBtn.TextScaled = true
+            SpeedBtn.Text = "Velocidade: 80"
+            SpeedBtn.AutoButtonColor = true
+            SpeedBtn.BackgroundTransparency = 0.1
+            
+            -- Controles dos botões
+            UpBtn.MouseButton1Down:Connect(function()
+                Fly.Up = true
+            end)
+            UpBtn.MouseButton1Up:Connect(function()
+                Fly.Up = false
+            end)
+            
+            DownBtn.MouseButton1Down:Connect(function()
+                Fly.Down = true
+            end)
+            DownBtn.MouseButton1Up:Connect(function()
+                Fly.Down = false
+            end)
+            
+            SpeedBtn.MouseButton1Click:Connect(function()
+                local values = {40, 80, 150, 250, 400}
+                local idx = table.find(values, Fly.Speed)
+                idx = idx and idx + 1 or 1
+                if idx > #values then idx = 1 end
+                Fly.Speed = values[idx]
+                SpeedBtn.Text = "Velocidade: " .. Fly.Speed
+            end)
+            
+            -- Funções do Grapple Hook
+            local function equipGrappleHook()
+                local char = LocalPlayer.Character
+                if not char then return end
+                local backpack = LocalPlayer:FindFirstChild("Backpack")
+                if not backpack then return end
+
+                local hook = backpack:FindFirstChild("Grapple Hook") or char:FindFirstChild("Grapple Hook")
+                if not hook then return end
+
+                if hook.Parent == backpack then
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    if hum then
+                        hum:EquipTool(hook)
+                    end
+                end
+            end
+
+            local function spamGrappleHook()
+                local pkg = ReplicatedStorage:FindFirstChild("Packages")
+                if not pkg then return end
+                pkg = pkg:FindFirstChild("Net")
+                if not pkg then return end
+                local remote = pkg:FindFirstChild("RE/UseItem")
+                if not remote then return end
+
+                pcall(function()
+                    remote:FireServer(0.23450689315795897)
+                end)
+            end
+            
+            -- Desativar colisão
+            for _, v in ipairs(character:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
+                end
+            end
+            
+            -- Mudar estado do humanoid
+            task.wait(0.2)
+            humanoid:ChangeState(Enum.HumanoidStateType.PlatformStanding)
+            
+            -- Sistema de movimento
+            Fly.Connections.movement = RunService.Heartbeat:Connect(function()
+                if not Fly.Enabled then return end
+                if not LocalPlayer.Character then return end
+                
+                local char = LocalPlayer.Character
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                
+                if not humanoid or not hrp then return end
+                
+                local move = Vector3.zero
+                move = move + (humanoid.MoveDirection * Fly.Speed)
+
+                if Fly.Up then
+                    move = move + Vector3.new(0, Fly.Speed, 0)
+                end
+                if Fly.Down then
+                    move = move + Vector3.new(0, -Fly.Speed, 0)
+                end
+
+                if move.Magnitude < 1 then
+                    hrp.AssemblyLinearVelocity = Vector3.zero
+                else
+                    hrp.AssemblyLinearVelocity = move
+                end
+            end)
+            
+            -- Auto equipar Grapple Hook
+            Fly.Connections.equip = RunService.Heartbeat:Connect(function()
+                if Fly.Enabled then
+                    equipGrappleHook()
+                end
+            end)
+            
+            -- Spam Grapple Hook
+            Fly.Connections.spam = RunService.Heartbeat:Connect(function()
+                if Fly.Enabled then
+                    spamGrappleHook()
+                end
+            end)
+            
+            -- Armazenar referências
+            Fly.GUI = ScreenGui
+            
+            -- Armazenar no botão para acesso posterior
+            button.FlySystem = Fly
+            
+        else
+            -- Desativar Fly V2
+            button.BackgroundColor3 = COR_BOTAO_DESATIVADO
+            print("Fly V2 desativado!")
+            
+            -- Recuperar sistema Fly
+            local Fly = button.FlySystem
+            
+            if Fly then
+                Fly.Enabled = false
+                
+                -- Restaurar personagem
+                local character = LocalPlayer.Character
+                if character then
+                    local humanoid = character:FindFirstChildOfClass("Humanoid")
+                    if humanoid then
+                        humanoid:ChangeState(Enum.HumanoidStateType.Running)
+                    end
+                    
+                    -- Restaurar colisão
+                    for _, v in ipairs(character:GetDescendants()) do
+                        if v:IsA("BasePart") then
+                            v.CanCollide = true
+                        end
+                    end
+                    
+                    -- Parar movimento
+                    local hrp = character:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        hrp.AssemblyLinearVelocity = Vector3.zero
+                    end
+                end
+                
+                -- Remover GUI
+                if Fly.GUI then
+                    Fly.GUI:Destroy()
+                end
+                
+                -- Desconectar conexões
+                for _, conn in pairs(Fly.Connections) do
+                    if conn then
+                        conn:Disconnect()
+                    end
+                end
+                
+                -- Limpar referência
+                button.FlySystem = nil
+            end
+        end
+    end
 })
 
 -- ==================== CONFIGURAÇÃO DOS BOTÕES DO PAINEL PRINCIPAL ====================
