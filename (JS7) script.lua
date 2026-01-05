@@ -37,10 +37,10 @@ Instance.new("UICorner", painelPrincipal).CornerRadius = UDim.new(0, 15)
 
 local tituloPrincipal = Instance.new("TextLabel", painelPrincipal)
 tituloPrincipal.Size = UDim2.new(1, 0, 0, ALTURA_TITULO)
-tituloPrincipal.Text = "JS7 HUB"
+tituloPrincipal.Text = "TTK:js7hub"
 tituloPrincipal.TextSize = 16
 tituloPrincipal.Font = Enum.Font.Arcade
-tituloPrincipal.TextColor3 = COR_ROSADO
+tituloPrincipal.TextColor3 = Color3.fromRGB(255, 0, 0)  -- ← VERMELHO
 tituloPrincipal.TextXAlignment = Enum.TextXAlignment.Center
 tituloPrincipal.BackgroundTransparency = 1
 
@@ -401,7 +401,7 @@ Instance.new("UICorner", painelLateral).CornerRadius = UDim.new(0, 15)
 local tituloLateral = Instance.new("TextLabel", painelLateral)
 tituloLateral.Size = UDim2.new(1, -30, 0, ALTURA_TITULO_LATERAL)
 tituloLateral.Position = UDim2.new(0, 35, 0, 2)
-tituloLateral.Text = "GOKU BLACK V2"
+tituloLateral.Text = "JS7 HUB V2"
 tituloLateral.TextSize = 14
 tituloLateral.Font = Enum.Font.Arcade
 tituloLateral.TextColor3 = COR_ROSADO
