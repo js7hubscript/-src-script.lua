@@ -1164,11 +1164,212 @@ criarBotaoLateral(posicaoYLateral, {
 })
 posicaoYLateral = posicaoYLateral + alturaLinhaLateral + ESPACO_LATERAL
 
--- Botão FLY V2
+-- Botão FLY V2 com sistema completo
 criarBotaoLateral(posicaoYLateral, {
     nome1 = "FLY V2", 
     temSeta = false, 
-    altura = alturaLinhaLateral
+    altura = alturaLinhaLateral,
+    
+    callback = function(button)
+        local ativo = button.BackgroundColor3 == COR_BOTAO_ATIVO
+        
+        if not ativo then
+            -- ATIVAR FLY V2
+            button.BackgroundColor3 = COR_BOTAO_ATIVO
+            
+            -- Sistema Fly V2 COMPLETO
+            local Players = game:GetService("Players")
+            local RunService = game:GetService("RunService")
+            local ReplicatedStorage = game:GetService("ReplicatedStorage")
+            local UserInputService = game:GetService("UserInputService")
+            
+            local LocalPlayer = Players.LocalPlayer
+            local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            local humanoid = character:WaitForChild("Humanoid")
+            local hrp = character:WaitForChild("HumanoidRootPart")
+            
+            local Fly = {
+                Speed = 80,
+                Up = false,
+                Down = false,
+                Enabled = true,
+            }
+            
+            local ScreenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+            ScreenGui.Name = "FlyControlUI"
+            ScreenGui.ResetOnSpawn = false
+            
+            local function makeButton(text, pos)
+                local btn = Instance.new("TextButton", ScreenGui)
+                btn.Size = UDim2.new(0, 140, 0, 50)
+                btn.Position = pos
+                btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+                btn.TextColor3 = Color3.new(1, 1, 1)
+                btn.TextScaled = true
+                btn.Text = text
+                btn.AutoButtonColor = true
+                btn.BackgroundTransparency = 0.15
+                return btn
+            end
+            
+            local UpBtn = makeButton("⬆ Subir", UDim2.new(0.8, 0, 0.6, 0))
+            local DownBtn = makeButton("⬇ Descer", UDim2.new(0.8, 0, 0.7, 0))
+            
+            local SpeedBtn = Instance.new("TextButton", ScreenGui)
+            SpeedBtn.Size = UDim2.new(0, 180, 0, 50)
+            SpeedBtn.Position = UDim2.new(0.02, 0, 0.75, 0)
+            SpeedBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            SpeedBtn.TextColor3 = Color3.new(1, 1, 1)
+            SpeedBtn.TextScaled = true
+            SpeedBtn.Text = "Velocidade: 80"
+            SpeedBtn.AutoButtonColor = true
+            SpeedBtn.BackgroundTransparency = 0.1
+            
+            UpBtn.MouseButton1Down:Connect(function()
+                Fly.Up = true
+            end)
+            UpBtn.MouseButton1Up:Connect(function()
+                Fly.Up = false
+            end)
+            
+            DownBtn.MouseButton1Down:Connect(function()
+                Fly.Down = true
+            end)
+            DownBtn.MouseButton1Up:Connect(function()
+                Fly.Down = false
+            end)
+            
+            SpeedBtn.MouseButton1Click:Connect(function()
+                local values = {40, 80, 150, 250, 400}
+                local idx = table.find(values, Fly.Speed)
+                idx = idx + 1
+                if idx > #values then idx = 1 end
+                Fly.Speed = values[idx]
+                SpeedBtn.Text = "Velocidade: " .. Fly.Speed
+            end)
+            
+            local function equipGrappleHook()
+                local char = LocalPlayer.Character
+                if not char then return end
+                local backpack = LocalPlayer:FindFirstChild("Backpack")
+                if not backpack then return end
+
+                local hook = backpack:FindFirstChild("Grapple Hook") or char:FindFirstChild("Grapple Hook")
+                if not hook then return end
+
+                if hook.Parent == backpack then
+                    local hum = char:FindFirstChildOfClass("Humanoid")
+                    if hum then
+                        hum:EquipTool(hook)
+                    end
+                end
+            end
+
+            local function spamGrappleHook()
+                local pkg = ReplicatedStorage:FindFirstChild("Packages")
+                if not pkg then return end
+                pkg = pkg:FindFirstChild("Net")
+                if not pkg then return end
+                local remote = pkg:FindFirstChild("RE/UseItem")
+                if not remote then return end
+
+                pcall(function()
+                    remote:FireServer(0.23450689315795897)
+                end)
+            end
+            
+            for _, v in ipairs(character:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
+                end
+            end
+            
+            task.wait(0.2)
+            humanoid:ChangeState(Enum.HumanoidStateType.PlatformStanding)
+            
+            RunService.Heartbeat:Connect(function()
+                if not Fly.Enabled then return end
+                if not LocalPlayer.Character then return end
+
+                local move = Vector3.zero
+                move = move + (humanoid.MoveDirection * Fly.Speed)
+
+                if Fly.Up then
+                    move = move + Vector3.new(0, Fly.Speed, 0)
+                end
+                if Fly.Down then
+                    move = move + Vector3.new(0, -Fly.Speed, 0)
+                end
+
+                if move.Magnitude < 1 then
+                    hrp.AssemblyLinearVelocity = Vector3.zero
+                else
+                    hrp.AssemblyLinearVelocity = move
+                end
+            end)
+            
+            task.spawn(function()
+                while true do
+                    task.wait(1)
+                    equipGrappleHook()
+                end
+            end)
+            
+            RunService.Heartbeat:Connect(spamGrappleHook)
+            
+            print("Fly V2 ativado!")
+            
+            -- Armazenar referências para desativação
+            button.FlyV2System = {
+                ScreenGui = ScreenGui,
+                Fly = Fly,
+                stop = function()
+                    Fly.Enabled = false
+                    
+                    -- Restaurar personagem
+                    local char = LocalPlayer.Character
+                    if char then
+                        local hum = char:FindFirstChildOfClass("Humanoid")
+                        if hum then
+                            hum:ChangeState(Enum.HumanoidStateType.Running)
+                        end
+                        
+                        -- Restaurar colisão
+                        for _, v in ipairs(char:GetDescendants()) do
+                            if v:IsA("BasePart") then
+                                v.CanCollide = true
+                            end
+                        end
+                        
+                        -- Parar movimento
+                        local hrp = char:FindFirstChild("HumanoidRootPart")
+                        if hrp then
+                            hrp.AssemblyLinearVelocity = Vector3.zero
+                        end
+                    end
+                end
+            }
+            
+        else
+            -- DESATIVAR FLY V2
+            button.BackgroundColor3 = COR_BOTAO_DESATIVADO
+            
+            if button.FlyV2System then
+                if button.FlyV2System.stop then
+                    button.FlyV2System.stop()
+                end
+                
+                -- Remover GUI
+                if button.FlyV2System.ScreenGui then
+                    button.FlyV2System.ScreenGui:Destroy()
+                end
+                
+                button.FlyV2System = nil
+            end
+            
+            print("Fly V2 desativado!")
+        end
+    end
 })
 
 -- ==================== CONFIGURAÇÃO DOS BOTÕES DO PAINEL PRINCIPAL ====================
@@ -1214,16 +1415,152 @@ spawn(function()
     end
 end)
 
--- Configurar botão ANTI DEBUFF (aplicar Desync V3)
+-- Configurar botão ANTI DEBUFF (agora com Anti Turret)
 spawn(function()
     wait(1)
     for _, child in ipairs(painelPrincipal:GetChildren()) do
         if child:IsA("TextButton") and child.Text == "ANTI DEBUFF" then
             child.MouseButton1Click:Connect(function()
-                aplicarDesync()
-                child.BackgroundColor3 = COR_BOTAO_ATIVO
-                task.wait(0.5)
-                child.BackgroundColor3 = COR_BOTAO_DESATIVADO
+                local ativo = child.BackgroundColor3 == COR_BOTAO_ATIVO
+                
+                if not ativo then
+                    -- ATIVAR ANTI TURRET
+                    child.BackgroundColor3 = COR_BOTAO_ATIVO
+                    
+                    -- Sistema Anti Turret
+                    local autoSentry = true
+                    local playerSentries = {}
+                    
+                    local function findPlayerBase()
+                        local char = LocalPlayer.Character
+                        if not char then return nil end
+                        
+                        local plots = workspace:FindFirstChild("Plots")
+                        if not plots then return nil end
+                        
+                        for _, plot in pairs(plots:GetChildren()) do
+                            if plot:FindFirstChild("Owner") and plot.Owner.Value == LocalPlayer then
+                                return plot
+                            end
+                        end
+                        return nil
+                    end
+                    
+                    local function isPlayerSentry(sentryObj)
+                        if playerSentries[sentryObj] then return true end
+                        
+                        local char = LocalPlayer.Character
+                        if not char then return false end
+                        
+                        local playerBase = findPlayerBase()
+                        if not playerBase then return false end
+                        
+                        local function isInPlayerBase(obj)
+                            local current = obj
+                            local depth = 0
+                            while current and current ~= workspace and depth < 15 do
+                                if current == playerBase then return true end
+                                current = current.Parent
+                                depth += 1
+                            end
+                            return false
+                        end
+                        
+                        if isInPlayerBase(sentryObj) then
+                            playerSentries[sentryObj] = true
+                            return true
+                        end
+                        return false
+                    end
+                    
+                    local function DoClick(tool)
+                        if tool and tool:FindFirstChild("Handle") then
+                            pcall(function() tool:Activate() end)
+                        else
+                            if VirtualInputManager then
+                                VirtualInputManager:SendMouseButtonEvent(500, 500, 0, true, game, 0)
+                                task.wait(0.05)
+                                VirtualInputManager:SendMouseButtonEvent(500, 500, 0, false, game, 0)
+                            end
+                        end
+                    end
+                    
+                    local function AttackSentry(part)
+                        local char = LocalPlayer.Character
+                        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                        if not hrp or not part then return end
+                        
+                        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+                        if not humanoid then return end
+                        
+                        local originalTool = humanoid:FindFirstChildOfClass("Tool")
+                        local bat = originalTool or LocalPlayer.Backpack:FindFirstChild("Bat") or LocalPlayer.Backpack:FindFirstChild("bat")
+                        
+                        if bat then
+                            if originalTool ~= bat then
+                                pcall(function()
+                                    humanoid:EquipTool(bat)
+                                end)
+                                task.wait(0.2)
+                            end
+                            
+                            task.spawn(function()
+                                while autoSentry and part.Parent do
+                                    pcall(function()
+                                        part.CFrame = hrp.CFrame * CFrame.new(0, 0, -3)
+                                    end)
+                                    DoClick(bat)
+                                    task.wait(0.07)
+                                end
+                                
+                                pcall(function()
+                                    if not autoSentry then return end
+                                    if originalTool and originalTool.Parent then
+                                        humanoid:EquipTool(originalTool)
+                                    else
+                                        humanoid:UnequipTools()
+                                    end
+                                end)
+                            end)
+                        end
+                    end
+                    
+                    -- Loop principal de detecção
+                    task.spawn(function()
+                        while autoSentry do
+                            for _, obj in ipairs(workspace:GetChildren()) do
+                                if obj.Name:lower():find("sentry_") then
+                                    if not isPlayerSentry(obj) then
+                                        local part = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart")
+                                        if part then
+                                            AttackSentry(part)
+                                        end
+                                    end
+                                end
+                            end
+                            task.wait(0.4)
+                        end
+                    end)
+                    
+                    print("Anti Turret ativado!")
+                    
+                    -- Armazenar função de desativação
+                    child.AntiTurretActive = true
+                    child.stopAntiTurret = function()
+                        autoSentry = false
+                        child.AntiTurretActive = false
+                    end
+                    
+                else
+                    -- DESATIVAR ANTI TURRET
+                    child.BackgroundColor3 = COR_BOTAO_DESATIVADO
+                    
+                    if child.stopAntiTurret then
+                        child.stopAntiTurret()
+                    end
+                    
+                    print("Anti Turret desativado!")
+                end
             end)
             break
         end
