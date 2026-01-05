@@ -1096,7 +1096,7 @@ criarBotaoLateral(posicaoYLateral, {
                 GoToBestHub.isStopping = true
                 GoToBestHub:stabilizePlayer()
                 button.BackgroundColor3 = COR_BOTAO_DESATIVADO
-                print("Fly to Best desativado")
+                print("Fly to Best desat minivado")
             else
                 GoToBestHub.Enabled = true
                 GoToBestHub.isStopping = false
@@ -1164,7 +1164,7 @@ criarBotaoLateral(posicaoYLateral, {
 })
 posicaoYLateral = posicaoYLateral + alturaLinhaLateral + ESPACO_LATERAL
 
--- Botão FLY V2 com funcionalidade completa
+-- Botão FLY V2 com funcionalidade simplificada
 criarBotaoLateral(posicaoYLateral, {
     nome1 = "FLY V2", 
     temSeta = false, 
@@ -1186,68 +1186,10 @@ criarBotaoLateral(posicaoYLateral, {
             
             -- Sistema Fly V2
             local Fly = {
-                Speed = 80,
-                Up = false,
-                Down = false,
+                Speed = 50,
                 Enabled = true,
-                Connections = {},
-                GUI = nil
+                Connections = {}
             }
-            
-            -- Criar GUI de controle
-            local ScreenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-            ScreenGui.Name = "FlyV2ControlUI"
-            ScreenGui.ResetOnSpawn = false
-            
-            local function makeButton(text, pos)
-                local btn = Instance.new("TextButton", ScreenGui)
-                btn.Size = UDim2.new(0, 140, 0, 50)
-                btn.Position = pos
-                btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-                btn.TextColor3 = Color3.new(1, 1, 1)
-                btn.TextScaled = true
-                btn.Text = text
-                btn.AutoButtonColor = true
-                btn.BackgroundTransparency = 0.15
-                return btn
-            end
-            
-            local UpBtn = makeButton("⬆ Subir", UDim2.new(0.8, 0, 0.6, 0))
-            local DownBtn = makeButton("⬇ Descer", UDim2.new(0.8, 0, 0.7, 0))
-            
-            local SpeedBtn = Instance.new("TextButton", ScreenGui)
-            SpeedBtn.Size = UDim2.new(0, 180, 0, 50)
-            SpeedBtn.Position = UDim2.new(0.02, 0, 0.75, 0)
-            SpeedBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-            SpeedBtn.TextColor3 = Color3.new(1, 1, 1)
-            SpeedBtn.TextScaled = true
-            SpeedBtn.Text = "Velocidade: 80"
-            SpeedBtn.AutoButtonColor = true
-            SpeedBtn.BackgroundTransparency = 0.1
-            
-            -- Controles dos botões
-            UpBtn.MouseButton1Down:Connect(function()
-                Fly.Up = true
-            end)
-            UpBtn.MouseButton1Up:Connect(function()
-                Fly.Up = false
-            end)
-            
-            DownBtn.MouseButton1Down:Connect(function()
-                Fly.Down = true
-            end)
-            DownBtn.MouseButton1Up:Connect(function()
-                Fly.Down = false
-            end)
-            
-            SpeedBtn.MouseButton1Click:Connect(function()
-                local values = {40, 80, 150, 250, 400}
-                local idx = table.find(values, Fly.Speed)
-                idx = idx and idx + 1 or 1
-                if idx > #values then idx = 1 end
-                Fly.Speed = values[idx]
-                SpeedBtn.Text = "Velocidade: " .. Fly.Speed
-            end)
             
             -- Funções do Grapple Hook
             local function equipGrappleHook()
@@ -1291,7 +1233,7 @@ criarBotaoLateral(posicaoYLateral, {
             task.wait(0.2)
             humanoid:ChangeState(Enum.HumanoidStateType.PlatformStanding)
             
-            -- Sistema de movimento
+            -- Sistema de movimento simplificado
             Fly.Connections.movement = RunService.Heartbeat:Connect(function()
                 if not Fly.Enabled then return end
                 if not LocalPlayer.Character then return end
@@ -1304,11 +1246,13 @@ criarBotaoLateral(posicaoYLateral, {
                 
                 local move = Vector3.zero
                 move = move + (humanoid.MoveDirection * Fly.Speed)
-
-                if Fly.Up then
+                
+                -- Controle vertical com teclas
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
                     move = move + Vector3.new(0, Fly.Speed, 0)
                 end
-                if Fly.Down then
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or 
+                   UserInputService:IsKeyDown(Enum.KeyCode.ButtonB) then
                     move = move + Vector3.new(0, -Fly.Speed, 0)
                 end
 
@@ -1332,9 +1276,6 @@ criarBotaoLateral(posicaoYLateral, {
                     spamGrappleHook()
                 end
             end)
-            
-            -- Armazenar referências
-            Fly.GUI = ScreenGui
             
             -- Armazenar no botão para acesso posterior
             button.FlySystem = Fly
@@ -1372,11 +1313,6 @@ criarBotaoLateral(posicaoYLateral, {
                     end
                 end
                 
-                -- Remover GUI
-                if Fly.GUI then
-                    Fly.GUI:Destroy()
-                end
-                
                 -- Desconectar conexões
                 for _, conn in pairs(Fly.Connections) do
                     if conn then
@@ -1389,6 +1325,8 @@ criarBotaoLateral(posicaoYLateral, {
             end
         end
     end
+})
+
 })
 
 -- ==================== CONFIGURAÇÃO DOS BOTÕES DO PAINEL PRINCIPAL ====================
