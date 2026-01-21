@@ -843,9 +843,194 @@ local function toggleSlowFalling(state)
 end
 
 -- ==================== BOTÕES LATERAIS COM CALLBACKS ====================
--- Botão DEVOURER / DESYNC
+-- Botão DEVOURER (Invisibilidade) / DESYNC
 criarParBotoesLateral(posicaoYLateral, 
-    {nome1 = "DEVOURER"}, 
+    {nome1 = "DEVOURER", callback = function(btn)
+        local ativo = btn.BackgroundColor3 == COR_BOTAO_ATIVO
+        
+        if not ativo then
+            -- ==================== ATIVAR INVISIBILIDADE ====================
+            if not LocalPlayer.Character or LocalPlayer.Character.Humanoid.Health <= 0 then 
+                btn.BackgroundColor3 = COR_BOTAO_DESATIVADO
+                return 
+            end
+            
+            -- Variáveis locais
+            local isInvisible = true
+            local connections = {SemiInvisible = {}}
+            local oldRoot = nil
+            local animTrack = nil
+            local connection = nil
+            local characterConnection = nil
+            local DEPTH_OFFSET = -0.1
+            
+            -- Funções locais
+            local function removeFolders()
+                local cloneFolder = workspace:FindFirstChild("InvisibilityClones")
+                if cloneFolder then cloneFolder:Destroy() end
+            end
+            
+            local function doClone()
+                local char = LocalPlayer.Character
+                if not char then return false end
+                local cloneFolder = Instance.new("Folder", workspace)
+                cloneFolder.Name = "InvisibilityClones"
+                local clone = char:Clone()
+                clone.Name = "InvisibleClone"
+                for _, child in ipairs(clone:GetDescendants()) do
+                    if child:IsA("Script") or child:IsA("LocalScript") then
+                        child:Destroy()
+                    elseif child:IsA("BasePart") then
+                        child.Transparency = 0.5
+                        child.CanCollide = false
+                    end
+                end
+                clone.Parent = cloneFolder
+                oldRoot = clone:FindFirstChild("HumanoidRootPart")
+                return true
+            end
+            
+            local function revertClone()
+                removeFolders()
+                oldRoot = nil
+            end
+            
+            local function animationTrickery()
+                local char = LocalPlayer.Character
+                if not char then return end
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                if not humanoid then return end
+                local animator = humanoid:FindFirstChildOfClass("Animator")
+                if animator then
+                    local animation = Instance.new("Animation")
+                    animation.AnimationId = "rbxassetid://507766666"
+                    animTrack = animator:LoadAnimation(animation)
+                    if animTrack then
+                        animTrack:Play()
+                        animTrack:AdjustSpeed(0)
+                    end
+                end
+            end
+            
+            local function enableInvisibility()
+                removeFolders()
+                local success = doClone()
+                if success then
+                    task.wait(0.1)
+                    animationTrickery()
+                    connection = RunService.PreSimulation:Connect(function(dt)
+                        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") and LocalPlayer.Character.Humanoid.Health > 0 and oldRoot then
+                            local root = LocalPlayer.Character.PrimaryPart or LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                            if root then
+                                local cf = root.CFrame - Vector3.new(0,LocalPlayer.Character.Humanoid.HipHeight + (root.Size.Y/2)-1 + DEPTH_OFFSET,0)
+                                oldRoot.CFrame = cf * CFrame.Angles(math.rad(180),0,0)
+                                oldRoot.Velocity = root.Velocity
+                                oldRoot.CanCollide = false
+                            end
+                        end
+                    end)
+                    table.insert(connections.SemiInvisible,connection)
+                    characterConnection = LocalPlayer.CharacterAdded:Connect(function(newChar)
+                        if isInvisible then
+                            if animTrack then animTrack:Stop() animTrack:Destroy() animTrack = nil end
+                            if connection then connection:Disconnect() end
+                            revertClone()
+                            removeFolders()
+                            isInvisible = false
+                            for _, conn in ipairs(connections.SemiInvisible) do if conn then conn:Disconnect() end end
+                            connections.SemiInvisible = {}
+                        end
+                    end)
+                    table.insert(connections.SemiInvisible,characterConnection)
+                    return true
+                end
+                return false
+            end
+            
+            local function setupGodmode()
+                local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                local hum = char:WaitForChild("Humanoid")
+                local mt = getrawmetatable(game)
+                local oldNC = mt.__namecall
+                local oldNI = mt.__newindex
+                setreadonly(mt,false)
+                mt.__namecall = newcclosure(function(self,...)
+                    local m = getnamecallmethod()
+                    if self == hum then
+                        if m == "ChangeState" and select(1,...) == Enum.HumanoidStateType.Dead then return end
+                        if m == "SetStateEnabled" then local st,en = ... if st == Enum.HumanoidStateType.Dead and en == true then return end end
+                        if m == "Destroy" then return end
+                    end
+                    if self == char and m == "BreakJoints" then return end
+                    return oldNC(self,...)
+                end)
+                mt.__newindex = newcclosure(function(self,k,v)
+                    if self == hum then
+                        if k == "Health" and type(v) == "number" and v <= 0 then return end
+                        if k == "MaxHealth" and type(v) == "number" and v < hum.MaxHealth then return end
+                        if k == "BreakJointsOnDeath" and v == true then return end
+                        if k == "Parent" and v == nil then return end
+                    end
+                    return oldNI(self,k,v)
+                end)
+                setreadonly(mt,true)
+            end
+            
+            -- Executar ativação
+            removeFolders()
+            setupGodmode()
+            if enableInvisibility() then
+                btn.BackgroundColor3 = COR_BOTAO_ATIVO
+                -- Salvar estado global
+                _G.DEVOURER_ACTIVE = true
+                _G.DEVOURER_DATA = {
+                    isInvisible = isInvisible,
+                    connections = connections,
+                    oldRoot = oldRoot,
+                    animTrack = animTrack,
+                    connection = connection,
+                    characterConnection = characterConnection
+                }
+            else
+                btn.BackgroundColor3 = COR_BOTAO_DESATIVADO
+            end
+            
+        else
+            -- ==================== DESATIVAR INVISIBILIDADE ====================
+            if _G.DEVOURER_ACTIVE and _G.DEVOURER_DATA then
+                -- Usar dados salvos
+                local data = _G.DEVOURER_DATA
+                
+                if data.animTrack then 
+                    data.animTrack:Stop() 
+                    data.animTrack:Destroy() 
+                end
+                if data.connection then 
+                    data.connection:Disconnect() 
+                end
+                if data.characterConnection then 
+                    data.characterConnection:Disconnect() 
+                end
+                
+                -- Limpar conexões
+                if data.connections and data.connections.SemiInvisible then
+                    for _, conn in ipairs(data.connections.SemiInvisible) do 
+                        if conn then conn:Disconnect() end 
+                    end
+                end
+                
+                -- Remover clone
+                local cloneFolder = workspace:FindFirstChild("InvisibilityClones")
+                if cloneFolder then cloneFolder:Destroy() end
+                
+                -- Limpar dados globais
+                _G.DEVOURER_ACTIVE = false
+                _G.DEVOURER_DATA = nil
+            end
+            
+            btn.BackgroundColor3 = COR_BOTAO_DESATIVADO
+        end
+    end}, 
     {nome1 = "DESYNC", callback = function(btn)
         aplicarDesync()
         btn.BackgroundColor3 = COR_BOTAO_ATIVO
