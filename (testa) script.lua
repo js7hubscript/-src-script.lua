@@ -75,24 +75,6 @@ botaoFlutuante.ScaleType = Enum.ScaleType.Fit
 botaoFlutuante.Active = true
 botaoFlutuante.Draggable = true
 
--- Sistema de fallback
-spawn(function()
-    wait(1)
-    if botaoFlutuante.Image == "" then
-        print("Imagem não carregou, configurando fallback...")
-        botaoFlutuante.Image = ""
-        local fallbackLabel = Instance.new("TextLabel", botaoFlutuante)
-        fallbackLabel.Size = UDim2.new(1, 0, 1, 0)
-        fallbackLabel.Text = "⚫"
-        fallbackLabel.TextSize = 32
-        fallbackLabel.Font = Enum.Font.GothamBlack
-        fallbackLabel.TextColor3 = COR_BOTAO_ATIVO
-        fallbackLabel.BackgroundTransparency = 1
-    else
-        print("Imagem carregada com sucesso!")
-    end
-end)
-
 -- Container da imagem
 local containerImagem = Instance.new("Frame", botaoFlutuante)
 containerImagem.Size = UDim2.new(1, -4, 1, -4)
